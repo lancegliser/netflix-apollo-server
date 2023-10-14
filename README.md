@@ -1,6 +1,6 @@
-# Apollo server Express GraphQL API example
+# Netflix Apollo Server
 
-> Provides a working API to expand from for initial development
+> Provides a working API for a Netflix like interface demonstration
 
 ## Upstream v1.2.0
 
