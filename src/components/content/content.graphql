@@ -1,0 +1,44 @@
+extend type Query {
+  content: Content!
+}
+
+type Content {
+  "Return a single item by id"
+  item(id: ID!): ContentItem!
+  "Return many items by ids"
+  items(ids: [ID!]!): [ContentItem!]!
+}
+
+extend type Mutation {
+  content: ContentMutations!
+}
+
+type ContentMutations {
+  "A place holder allowing extension in other files"
+  noop: Boolean @deprecated
+}
+
+type ContentItem implements IId & ICached & IDisplayName & IDisplayImage {
+  """
+  The primary id for this type. Typically in the form of Contract/12887867.
+  """
+  id: ID!
+  "ISO date time string for the time this resource was created"
+  cachedAt: String
+  """
+  A value that can be included into <img src /> properties.
+  In some environments, this may be a base64 encoded data URL.
+  Do *not* request in mass across an entire search result.
+  """
+  displayImageUrl: String
+  """
+  A preformatted display name safe to display in HTML context
+  """
+  displayName: String!
+  format: ContentItemFormat!
+}
+
+enum ContentItemFormat {
+  Series
+  Movie
+}

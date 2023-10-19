@@ -8,6 +8,12 @@ export interface GraphQLContext
   extends SystemContext,
     ExpressContextFunctionArgument {
   authentication?: AuthenticationContext;
+  /**
+   * Allows resolvers to store data for use in other resolvers.
+   * Care must be taken as operations can be destructive.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cache: Record<string, any>;
 }
 
 export type TGetGraphQLContextAdditions = (
@@ -27,6 +33,7 @@ export const getGraphQLContextAdditions: TGetGraphQLContextAdditions = async (
     ...context,
     ...req.locals.system,
     authentication: req.locals.authentication,
+    cache: {},
     logger: getECSContextualLogger(logger, {
       req: context.req,
       res: context.res,

@@ -1,3 +1,8 @@
+interface ICached {
+  "ISO date time string for the time this resource was created"
+  cachedAt: String
+}
+
 interface ICreated {
   "ISO date time string for the time this resource was created"
   createdAt: String

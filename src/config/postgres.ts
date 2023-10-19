@@ -1,5 +1,5 @@
 import pg, { Pool } from "pg";
-import logger from "../../server/logger";
+import logger from "../server/logger";
 
 // Force timestamps to return as ISO 8601 format. See the tests for edge cases.
 export const timestampWithoutValuesFormatter = (timestamp: string): string => {
@@ -83,7 +83,7 @@ export const getPostgresConnectionPool = (): Pool => {
   return pool;
 };
 
-export const schema = (process.env.PGSCHEMA || "halo-service").replaceAll(
+export const schema = (process.env.PGSCHEMA || "netflix-service").replaceAll(
   "-",
   "_",
 );

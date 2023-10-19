@@ -344,3 +344,17 @@ export const authECSEventEndFields = {
   ...authECSEventFields,
   "event.type": ["allowed", "end", "user"],
 };
+
+export const getAuthorizationHeadersFromContext = ({
+  authentication,
+}: Pick<GraphQLContext, "authentication">): { Authorization: string } & Record<
+  string,
+  string
+> => ({
+  Authorization: [
+    authentication?.credentials?.tokenType,
+    authentication?.credentials?.accessToken,
+  ]
+    .filter(Boolean)
+    .join(" "),
+});

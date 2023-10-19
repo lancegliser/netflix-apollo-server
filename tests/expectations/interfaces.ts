@@ -1,11 +1,34 @@
-import { IDisplayName } from "../../src/generated/types";
+import {
+  ICreated,
+  IDisplayImage,
+  IDisplayName,
+  IUpdated,
+} from "../../src/generated/types";
 import { DateTime, Settings as LuxonSettings } from "luxon";
+import { isAbsoluteUrl } from "../../src/utilities/common";
 
 // Ensure invalid dates throw errors
 LuxonSettings.throwOnInvalid = true;
 
+export const expectCreatedProperties = (object: ICreated): void => {
+  expect(object.createdAt).toBeTruthy();
+  expect(object.createdBy).toBeTruthy();
+};
+
 export const expectDisplayName = (object: IDisplayName): void => {
   expect(object.displayName).toBeTruthy();
+};
+
+export const expectDisplayImage = (object: IDisplayImage): void => {
+  if (!object.displayImageUrl) {
+    return;
+  }
+  expect(object.displayImageUrl).toBeTruthy();
+  expect(typeof object.displayImageUrl === "string").toBeTruthy();
+  const isDataUrl = object.displayImageUrl.startsWith("data:image");
+  if (!isDataUrl) {
+    expect(isAbsoluteUrl(object.displayImageUrl)).toBeTruthy();
+  }
 };
 
 export const expectBooleanIfPresent = (
@@ -140,4 +163,9 @@ const expectDateInBounds = (dateTime: DateTime, bounds?: DateBounds): void => {
     const maximumDateTime = DateTime.fromJSDate(bounds.maximum);
     expect(dateTime.valueOf()).toBeLessThanOrEqual(maximumDateTime.valueOf());
   }
+};
+
+export const expectUpdatedProperties = (object: IUpdated): void => {
+  expect(object.updatedAt).toBeTruthy();
+  expect(object.updatedBy).toBeTruthy();
 };

@@ -1,0 +1,10 @@
+type AccessRecord {
+  "A UUID"
+  id: ID!
+  accessorId: String!
+  objectType: String!
+  objectId: String!
+  operation: String!
+  "ISO Format"
+  timestamp: String!
+}
