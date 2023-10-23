@@ -13,11 +13,11 @@ type ContentItemCacheIds = {
 export const setContentItemCache = async (
   context: GraphQLContext,
   ids: ContentItemCacheIds,
-  node: ContentItem,
+  item: ContentItem,
 ): Promise<ContentItem> => {
   const key = getContentItemCacheKey(ids);
   context.cache[key] = {
-    ...node,
+    ...item,
     cachedAt: new Date().toISOString(),
   } satisfies ContentItem;
 
@@ -61,18 +61,18 @@ export const getContentItemsCacheIndex = async (
   ids: ContentItemCacheIds[],
 ): Promise<ContentItemCacheIndex> => {
   const cacheResults = await Promise.allSettled(
-    ids.map(async (ids) => {
+    ids.map(async (id) => {
       try {
-        const node = await getContentItemCache(context, ids);
+        const item = await getContentItemCache(context, id);
         return {
-          ...ids,
-          node,
+          ...id,
+          item,
         };
       } catch (reason) {
-        context.logger.warning(`Failed to get node ${ids.id}: ${reason}`);
+        context.logger.warning(`Failed to get item ${id.id}: ${reason}`);
         return {
-          ...ids,
-          node: undefined,
+          ...id,
+          item: undefined,
         };
       }
     }),
@@ -80,7 +80,7 @@ export const getContentItemsCacheIndex = async (
 
   return cacheResults.reduce((index, result) => {
     if (result.status === "fulfilled") {
-      index[result.value.id] = result.value.node;
+      index[result.value.id] = result.value.item;
     }
     return index;
   }, {} as ContentItemCacheIndex);

@@ -2,16 +2,7 @@ import { SavedRecord } from "../../../generated/types";
 import { GraphQLContext } from "../../context";
 import { ForbiddenError } from "../../../utilities/graphqlErrors";
 import { DatabaseNotFoundError } from "../../../utilities/postgres";
-
-export const getContentSourceObjectSavedRecordObjectId = (objectId: string) =>
-  objectId;
-export const getContentSourceObjectSavedRecordIdComponents = (
-  id: string,
-): {
-  objectId: string;
-} => {
-  return { objectId: id };
-};
+import { getCreatedProperties } from "../../../interfaces";
 
 export const addContentSavedObject = async (
   context: Pick<GraphQLContext, "authentication" | "savedRepo">,
@@ -23,6 +14,7 @@ export const addContentSavedObject = async (
 
   return context.savedRepo.save({
     ...getCreatedProperties({}, context.authentication.identity),
+    objectType: "ContentItem",
     objectId,
   });
 };

@@ -1,10 +1,6 @@
 // TODO this might should be a sub folder
 import { ContentMutationsResolvers, Resolvers } from "../../../generated/types";
-import {
-  getContentSourceObjectAccessTrackingId,
-  contentSourceAccessTrackingType,
-  trackContentObjectAccess,
-} from "./access.utils";
+import { trackContentObjectAccess } from "./access.utils";
 
 export const addContentAccessResolvers = (resolvers: Resolvers): Resolvers => {
   resolvers.ContentMutations = {
@@ -15,10 +11,10 @@ export const addContentAccessResolvers = (resolvers: Resolvers): Resolvers => {
 };
 
 const contentMutations: ContentMutationsResolvers = {
-  trackSourceObjectAccess: (_, args, context) =>
+  trackItemAccess: (_, args, context) =>
     trackContentObjectAccess(
       "ContentItem",
-      getContentSourceObjectAccessTrackingId(),
+      args.objectId,
       args.operation,
       context,
     ),

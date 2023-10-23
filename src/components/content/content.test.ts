@@ -4,6 +4,7 @@ import { v4 } from "uuid";
 import { expectSavedRecord, SavedRecordFields } from "../saved/saved.test";
 import {
   expectDateISOString,
+  expectStringArray,
   expectStringIfTruthy,
 } from "../../../tests/expectations";
 import { ContentItem, ContentItemFormat } from "../../generated/types";
@@ -19,6 +20,8 @@ export const ContentItemFields = print(gql`
     cachedAt
     displayName
     displayImageUrl
+    format
+    genres
     saved {
       ...SavedRecordFields
     }
@@ -33,6 +36,9 @@ export const expectContentItem = (item: ContentItem) => {
     expectDateISOString(item.cachedAt);
   }
   expect(item.format).toBeTruthy();
+  if (item.genres) {
+    expectStringArray(item.genres);
+  }
   expectStringIfTruthy(item.displayImageUrl);
   if (item.saved) {
     expectSavedRecord(item.saved);

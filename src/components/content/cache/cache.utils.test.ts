@@ -60,50 +60,50 @@ describe("content cache utils", () => {
   });
 
   describe("getContentItemCaches", () => {
-    it.skip("should return all cached nodes or undefined indexed by source then id", () => {});
+    it.skip("should return all cached items or undefined indexed by source then id", () => {});
   });
 
   describe("getContentItemsCacheIndex", () => {
     it("should return a cache index", async () => {
       await withGraphQLContext(async (context) => {
-        const node1Id = v4();
-        const node1 = await setContentItemCache(
+        const item1Id = v4();
+        const item1 = await setContentItemCache(
           context,
-          { id: node1Id },
-          generateContentItem({ id: node1Id }),
+          { id: item1Id },
+          generateContentItem({ id: item1Id }),
         );
 
-        const node2Id = v4();
-        const node2 = await setContentItemCache(
+        const item2Id = v4();
+        const item2 = await setContentItemCache(
           context,
-          { id: node2Id },
-          generateContentItem({ id: node2Id }),
+          { id: item2Id },
+          generateContentItem({ id: item2Id }),
         );
 
         try {
           const missedId1 = v4();
           const missedId2 = v4();
           const index = await getContentItemsCacheIndex(context, [
-            { id: node1.id },
+            { id: item1.id },
             { id: missedId1 },
             { id: missedId2 },
-            { id: node2.id },
+            { id: item2.id },
           ]);
 
-          expect(index[node1Id]).toStrictEqual(node1);
+          expect(index[item1Id]).toStrictEqual(item1);
           expect(index[missedId1]).toBeUndefined();
-          expect(index[node2Id]).toStrictEqual(node2);
+          expect(index[item2Id]).toStrictEqual(item2);
           expect(index[missedId2]).toBeUndefined();
         } finally {
-          await deleteContentItemCache(context, { id: node1.id });
-          await deleteContentItemCache(context, { id: node2.id });
+          await deleteContentItemCache(context, { id: item1.id });
+          await deleteContentItemCache(context, { id: item2.id });
         }
       });
     });
   });
 
   describe("getContentItemsCacheIndexMisses", () => {
-    it("should return ids only for nodes not defined", () => {
+    it("should return ids only for items not defined", () => {
       const id1 = v4();
       const id2 = v4();
       const id3 = v4();

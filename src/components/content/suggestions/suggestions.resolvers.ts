@@ -1,9 +1,9 @@
 import {
   ContentResolvers,
   ContentSuggestions,
+  ContentSuggestionsResolvers,
   Resolvers,
 } from "../../../generated/types";
-import { getSources, getSourcesIndex } from "../content.utils";
 import {
   getDynamicSuggestionsSets,
   getRecentSuggestionsSet,
@@ -15,36 +15,32 @@ export const addContentSuggestionResolvers = (
   resolvers: Resolvers,
 ): Resolvers => {
   resolvers.Content = { ...resolvers.Content, ...content };
+  resolvers.ContentSuggestions = contentSuggestions;
   return resolvers;
 };
 
 const content: ContentResolvers = {
   suggestions: async (_, args, context) => {
-    const options: SuggestionsSetsOptions = {
-      limit: args.limit || 30,
-      preload: args.preload || undefined,
-      preloadLast: args.preloadLast || false,
+    context.cache.contentSuggestions = {
+      options: {
+        limit: args.limit || 30,
+        preload: args.preload || undefined,
+        preloadLast: args.preloadLast || false,
+      } satisfies SuggestionsSetsOptions,
     };
-
-    // Get the sources, we'll need them shared throughout the other resolvers
-    const sources = await getSources(context);
-    const sourcesIndex = getSourcesIndex(sources);
-
-    // Be real careful about order here...
-    const [dynamicResult, recentResult, savedResult] = await Promise.allSettled(
-      [
-        // There is some concern that the promises here may all overlap for a particular node id.
-        // A redis cache backing `getNodes` would ameliorate much of the concern, pre-optimizations stalled.
-        getDynamicSuggestionsSets(context, sourcesIndex, options),
-        getRecentSuggestionsSet(context, sourcesIndex, options),
-        getSavedSuggestionsSet(context, sourcesIndex, options),
-      ],
-    );
-    return {
-      dynamic:
-        dynamicResult.status === "fulfilled" ? dynamicResult.value : null,
-      recent: recentResult.status === "fulfilled" ? recentResult.value : null,
-      saved: savedResult.status === "fulfilled" ? savedResult.value : null,
-    } as ContentSuggestions;
+    // We'll fill this in with resolvers below on demand
+    return {} as ContentSuggestions;
   },
+};
+
+const contentSuggestions: ContentSuggestionsResolvers = {
+  dynamic: (parent, args, context) =>
+    getDynamicSuggestionsSets(
+      context,
+      context.cache.contentSuggestions.options,
+    ),
+  recent: (parent, args, context) =>
+    getRecentSuggestionsSet(context, context.cache.contentSuggestions.options),
+  saved: (parent, args, context) =>
+    getSavedSuggestionsSet(context, context.cache.contentSuggestions.options),
 };

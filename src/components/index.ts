@@ -8,6 +8,7 @@ import { addAuthRoutes } from "./auth/auth.routes";
 import { Express } from "express";
 import { addSystemResolvers } from "./system/system.resolvers";
 import { addAuthResolvers } from "./auth/auth.resolvers";
+import { addContentResolvers } from "./content/content.resolvers";
 
 const { authDirectiveTransformer } = graphQLAuthDirective("auth");
 
@@ -25,6 +26,7 @@ export const getResolvers = async (
   addSystemResolvers(resolvers);
   addAuthResolvers(resolvers);
   addUserResolvers(resolvers);
+  addContentResolvers(resolvers);
   const schema = makeExecutableSchema({
     typeDefs,
     resolvers,

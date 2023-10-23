@@ -1,11 +1,8 @@
 import {
-  accessTokenCookieName,
   baseAuthUri,
   loginUri,
   logoutUri,
   oAuthRedirectUri,
-  refreshTokenCookieName,
-  tokenTypeCookieName,
 } from "./auth.constants";
 import { Request } from "express";
 import {
@@ -17,7 +14,10 @@ import { AuthenticationRole } from "../../generated/types";
 import { defaultFieldResolver } from "graphql/execution";
 import { getDirective, MapperKind, mapSchema } from "@graphql-tools/utils";
 import { GraphQLSchema } from "graphql";
-import { AuthenticationCredentials } from "../../services/auth-api/generated/types";
+import {
+  AuthenticationCredentials,
+  TokenType,
+} from "../../services/auth-api/generated/types";
 import { GraphQLResponse } from "graphql-request/src/types";
 import {
   oAuthApplicationId,
@@ -143,51 +143,69 @@ export const getAuthenticationContext = async (
   req: ExpressContextFunctionArgument["req"],
   { logger }: Pick<SystemContext, "logger">,
 ): Promise<AuthenticationContext> => {
-  const headers = req.headers || {};
-  const [authorizationType, authorizationToken] = (
-    headers.authorization || ""
-  ).split(" ");
-  const cookies = req.cookies || {};
-  const accessToken =
-    authorizationType.toLowerCase() === "bearer" && authorizationToken
-      ? authorizationToken
-      : cookies[accessTokenCookieName];
-  const refreshToken = cookies[refreshTokenCookieName];
+  // ☣️ This is me taking auth to get the demo running
+  return {
+    credentials: {
+      tokenType: TokenType.Bearer,
+      accessToken: Math.random().toFixed(5),
+      refreshToken: "1234",
+    },
+    identity: {
+      active: true,
+      displayImageUrl:
+        "https://miro.medium.com/v2/resize:fit:2000/format:webp/1*wFRSaIty-3Ogkl7yHYOaQg.jpeg",
+      displayName: "Tester Bennington",
+      email: "Tester.Bennington@example.com",
+      id: "Tester.Bennington",
+    },
+  } satisfies AuthenticationContext;
 
-  const tokenType = authorizationType || cookies[tokenTypeCookieName];
-
-  // Generally, we wouldn't bother sending anonymous requests to the Auth service.
-  // Recent changes now provide feature that emulates a stub user, regardless of credentials.
-  // Testing sending along the anonymous credentials by commenting this out.
-  // TODO decide if this needs rolled into the upstream for all services to inherit.
-  // if (!accessToken && !refreshToken) {
+  // ✅ This is what you should do
+  // const headers = req.headers || {};
+  // const [authorizationType, authorizationToken] = (
+  //   headers.authorization || ""
+  // ).split(" ");
+  // const cookies = req.cookies || {};
+  // const accessToken =
+  //   authorizationType.toLowerCase() === "bearer" && authorizationToken
+  //     ? authorizationToken
+  //     : cookies[accessTokenCookieName];
+  // const refreshToken = cookies[refreshTokenCookieName];
+  //
+  // const tokenType = authorizationType || cookies[tokenTypeCookieName];
+  //
+  // // Generally, we wouldn't bother sending anonymous requests to the Auth service.
+  // // Recent changes now provide feature that emulates a stub user, regardless of credentials.
+  // // Testing sending along the anonymous credentials by commenting this out.
+  // // TODO decide if this needs rolled into the upstream for all services to inherit.
+  // // if (!accessToken && !refreshToken) {
+  // //   return {};
+  // // }
+  //
+  // const initialContext = await getAuthenticationContextFromAccessToken(
+  //   { tokenType, accessToken },
+  //   { logger },
+  // );
+  // if (initialContext) {
+  //   return initialContext;
+  // }
+  //
+  // // Access token failed, let's try to refresh.
+  // if (!refreshToken) {
   //   return {};
   // }
-
-  const initialContext = await getAuthenticationContextFromAccessToken(
-    { tokenType, accessToken },
-    { logger },
-  );
-  if (initialContext) {
-    return initialContext;
-  }
-
-  // Access token failed, let's try to refresh.
-  if (!refreshToken) {
-    return {};
-  }
-  const newCredentials = await getCredentialsFromRefreshToken(refreshToken, {
-    logger,
-  });
-  if (!newCredentials) {
-    return {};
-  }
-
-  const subsequentContext = await getAuthenticationContextFromAccessToken(
-    newCredentials,
-    { logger },
-  );
-  return subsequentContext || {};
+  // const newCredentials = await getCredentialsFromRefreshToken(refreshToken, {
+  //   logger,
+  // });
+  // if (!newCredentials) {
+  //   return {};
+  // }
+  //
+  // const subsequentContext = await getAuthenticationContextFromAccessToken(
+  //   newCredentials,
+  //   { logger },
+  // );
+  // return subsequentContext || {};
 };
 
 const getAuthenticationContextFromAccessToken = async (

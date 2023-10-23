@@ -7,7 +7,6 @@ import {
   addContentSavedObject,
   deleteContentSavedObject,
   getContentSavedObject,
-  getContentSourceObjectSavedRecordObjectId,
 } from "./saved.utils";
 
 export const addContentSavedObjectResolvers = (
@@ -23,8 +22,7 @@ export const addContentSavedObjectResolvers = (
 
 const contentMutations: ContentMutationsResolvers = {
   addSavedItem: (_, args, context) => {
-    const objectId = getContentSourceObjectSavedRecordObjectId(args.objectId);
-    return addContentSavedObject(context, objectId);
+    return addContentSavedObject(context, args.objectId);
   },
   deleteSavedObject: async (_, args, context) =>
     deleteContentSavedObject(context, args.id),
@@ -32,8 +30,6 @@ const contentMutations: ContentMutationsResolvers = {
 
 const contentItemResolvers: ContentItemResolvers = {
   saved: (parent, args, context) => {
-    const objectId = getContentSourceObjectSavedRecordObjectId(parent.id);
-
-    return getContentSavedObject(context, objectId);
+    return getContentSavedObject(context, parent.id);
   },
 };

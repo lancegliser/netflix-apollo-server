@@ -35,7 +35,11 @@ type ContentItem implements IId & ICached & IDisplayName & IDisplayImage {
   A preformatted display name safe to display in HTML context
   """
   displayName: String!
+
+  # Non-interface fields
+  summary: String
   format: ContentItemFormat!
+  genres: [String!]
 }
 
 enum ContentItemFormat {

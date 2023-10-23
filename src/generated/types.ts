@@ -132,10 +132,12 @@ export type ContentItem = ICached &
     /** A preformatted display name safe to display in HTML context */
     displayName: Scalars["String"]["output"];
     format: ContentItemFormat;
+    genres?: Maybe<Array<Scalars["String"]["output"]>>;
     /** The primary id for this type. Typically in the form of Contract/12887867. */
     id: Scalars["ID"]["output"];
     /** Defines if the current user has saved this item or not as stored by in the application layer */
     saved?: Maybe<SavedRecord>;
+    summary?: Maybe<Scalars["String"]["output"]>;
   };
 
 export enum ContentItemFormat {
@@ -155,19 +157,19 @@ export type ContentMutations = {
    */
   noop?: Maybe<Scalars["Boolean"]["output"]>;
   /** Updates the access records for the current user and the identified object. */
-  trackSourceObjectAccess: AccessRecord;
+  trackItemAccess: AccessRecord;
 };
 
 export type ContentMutationsAddSavedItemArgs = {
-  id: Scalars["String"]["input"];
+  objectId: Scalars["String"]["input"];
 };
 
 export type ContentMutationsDeleteSavedObjectArgs = {
   id: Scalars["ID"]["input"];
 };
 
-export type ContentMutationsTrackSourceObjectAccessArgs = {
-  id: Scalars["String"]["input"];
+export type ContentMutationsTrackItemAccessArgs = {
+  objectId: Scalars["String"]["input"];
   operation: ContentAccessOperation;
 };
 
@@ -724,12 +726,18 @@ export type ContentItemResolvers<
     ParentType,
     ContextType
   >;
+  genres?: Resolver<
+    Maybe<Array<ResolversTypes["String"]>>,
+    ParentType,
+    ContextType
+  >;
   id?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
   saved?: Resolver<
     Maybe<ResolversTypes["SavedRecord"]>,
     ParentType,
     ContextType
   >;
+  summary?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -742,7 +750,7 @@ export type ContentMutationsResolvers<
     ResolversTypes["SavedRecord"],
     ParentType,
     ContextType,
-    RequireFields<ContentMutationsAddSavedItemArgs, "id">
+    RequireFields<ContentMutationsAddSavedItemArgs, "objectId">
   >;
   deleteSavedObject?: Resolver<
     Maybe<ResolversTypes["SavedRecord"]>,
@@ -751,14 +759,11 @@ export type ContentMutationsResolvers<
     RequireFields<ContentMutationsDeleteSavedObjectArgs, "id">
   >;
   noop?: Resolver<Maybe<ResolversTypes["Boolean"]>, ParentType, ContextType>;
-  trackSourceObjectAccess?: Resolver<
+  trackItemAccess?: Resolver<
     ResolversTypes["AccessRecord"],
     ParentType,
     ContextType,
-    RequireFields<
-      ContentMutationsTrackSourceObjectAccessArgs,
-      "id" | "operation"
-    >
+    RequireFields<ContentMutationsTrackItemAccessArgs, "objectId" | "operation">
   >;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };

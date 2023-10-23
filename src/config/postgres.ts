@@ -83,10 +83,9 @@ export const getPostgresConnectionPool = (): Pool => {
   return pool;
 };
 
-export const schema = (process.env.PGSCHEMA || "netflix-service").replaceAll(
-  "-",
-  "_",
-);
+export const schema = (
+  process.env.PGSCHEMA || "netflix-apollo-graphql"
+).replaceAll("-", "_");
 
 export const validatePostgres = () => {
   if (!process.env.PGUSER) {

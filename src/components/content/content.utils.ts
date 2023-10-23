@@ -4,13 +4,13 @@ import {
   ContentItemsArgs,
 } from "../../generated/types";
 import { GraphQLContext } from "../context";
-import { getAuthorizationHeadersFromContext } from "../auth/auth.utils";
 import {
   getContentItemsCacheIndex,
   getContentItemsCacheIndexMisses,
   setContentItemCache,
 } from "./cache/cache.utils";
 import { ValidationError } from "../../utilities/graphqlErrors";
+import { mockItems } from "./content.mock";
 
 /**
  * Returns full Content items.
@@ -25,46 +25,33 @@ export const getItems = async (
   }
 
   // Get those already cached
-  const nodeIndex = await getContentItemsCacheIndex(
+  const itemIndex = await getContentItemsCacheIndex(
     context,
     ids.map((id) => ({
       id,
     })),
   );
-  const cacheMisses = getContentItemsCacheIndexMisses(nodeIndex);
+  const cacheMisses = getContentItemsCacheIndexMisses(itemIndex);
   // Nothing was a cache miss! Let's return it.
   if (!cacheMisses.length) {
-    return Object.values(nodeIndex).filter(Boolean) as ContentItem[];
+    return Object.values(itemIndex).filter(Boolean) as ContentItem[];
   }
 
-  const response = await fetch(
-    [sourceUrl, `/content/data/graph/nodes`].join(""),
-    {
-      ...getPostDefaults(context),
-      body: JSON.stringify({
-        nodeIds: requestIds,
-      }),
-    },
-  );
-  const contents = (await response.json()) as ContentResponse<{
-    nodes: ContentItem[];
-    sourceId: string;
-  }>;
-  throwContentResponseErrors(contents);
+  const filteredItems = mockItems.filter(({ id }) => ids.includes(id));
 
   // Store those objects into the cache and update our index to return
   await Promise.all(
-    contents.result.nodes.map(async (item) => {
+    filteredItems.map(async (item) => {
       const cached = await setContentItemCache(context, { id: item.id }, item);
       if (!cached) {
         throw new Error(`Failed to cache ${item.id}`);
       }
 
-      nodeIndex[cached.id] = cached;
+      itemIndex[cached.id] = cached;
     }),
   );
 
-  return Object.values(nodeIndex) as ContentItem[];
+  return Object.values(itemIndex) as ContentItem[];
 };
 
 /**
@@ -79,52 +66,22 @@ export const getItem = async (
     throw new ValidationError("An id must be supplied");
   }
 
-  const nodes = await getItems(context, { ids: [id] });
-  const node = nodes.at(0);
-  if (!node) {
-    throw new Error(`node ${id} not found`);
+  const items = await getItems(context, { ids: [id] });
+  const item = items.at(0);
+  if (!item) {
+    throw new Error(`item ${id} not found`);
   }
 
-  return node;
+  return item;
 };
 
 export const getItemsIndex = (
-  nodes: ContentItem[],
+  items: ContentItem[],
 ): Record<ContentItem["id"], ContentItem> =>
-  nodes.reduce(
+  items.reduce(
     (index, source) => {
       index[source.id] = source;
       return index;
     },
     {} as ReturnType<typeof getItemsIndex>,
   );
-
-const staticHeaders = {};
-
-const postRequestDefaults: Partial<RequestInit> = {
-  method: "POST",
-  headers: { ...staticHeaders, "Content-Type": "application/json" },
-};
-export const getPostDefaults = (
-  context: Pick<GraphQLContext, "authentication">,
-): Partial<RequestInit> => ({
-  ...postRequestDefaults,
-  headers: {
-    ...postRequestDefaults.headers,
-    ...getAuthorizationHeadersFromContext(context),
-  },
-});
-
-const getRequestDefaults: Partial<RequestInit> = {
-  method: "GET",
-  headers: staticHeaders,
-};
-export const getGetDefaults = (
-  context: Pick<GraphQLContext, "authentication">,
-): Partial<RequestInit> => ({
-  ...getRequestDefaults,
-  headers: {
-    ...getRequestDefaults.headers,
-    ...getAuthorizationHeadersFromContext(context),
-  },
-});

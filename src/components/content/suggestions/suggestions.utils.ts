@@ -1,19 +1,13 @@
 import {
-  ContentAccessOperation,
   ContentItem,
   ContentSuggestionsArgs,
   ContentSuggestionsItem,
   ContentSuggestionsSet,
 } from "../../../generated/types";
-import { getItems, getItemsIndex } from "../content.utils";
 import { GraphQLContext } from "../../context";
-import {
-  getContentItemLatestReadAccesses,
-  getContentSourceObjectAccessTrackingIdComponents,
-  contentSourceAccessTrackingType,
-  trackContentObjectAccess,
-} from "../access/access.utils";
-import { getContentSourceObjectSavedRecordIdComponents } from "../saved/saved.utils";
+import { getContentItemLatestReadAccesses } from "../access/access.utils";
+import { mockItems } from "../content.mock";
+import { getItems } from "../content.utils";
 
 export type SuggestionsSetsOptions = {
   limit: number;
@@ -29,28 +23,48 @@ export const getSavedSuggestionsSet = async (
   context: GraphQLContext,
   options: SuggestionsSetsOptions,
 ): Promise<ContentSuggestionsSet> => {
-  // Get the user's access records to obtain source and ids for nodes
+  // Get the user's access records to obtain source and ids for items
   if (!context.authentication?.identity?.id) {
     throw new Error("context.authentication?.identity?.id is undefined");
   }
 
   const savedRecords = await context.savedRepo.query({
     createdBys: context.authentication.identity.id,
+    objectTypes: "ContentItem",
     limit: options.limit,
   });
 
-  const sourceNodeIndex = savedRecords
-    .map((savedRecord) =>
-      getContentSourceObjectSavedRecordIdComponents(savedRecord.objectId),
-    )
-    .reduce(getSourceObjectIndex, {} as ItemIndex<ContentItem>);
+  const ids = savedRecords.map((savedRecord) => savedRecord.objectId);
+  if (!ids.length) {
+    return {
+      displayName: "Saved",
+      items: [],
+    };
+  }
+
+  const items = await getItems(context, { ids });
+  const mockedSuggestions = items.map(getContentSuggestionItemFromContentItem);
+
+  // Since we've already preloaded these due to mock, we need to modify them a bit.
+  // If items aren't _suppose_ to be preloaded,
+  // we need to strip out `displayImageUrl` to allow it lazy loading.
+  const preloadIndex = getPreloadSuggestionIdsIndex(mockedSuggestions, options);
+  const preloadIds = preloadIndex?.size
+    ? Array.from(preloadIndex.values())
+    : undefined;
+  const suggestions = mockedSuggestions.map((item) => {
+    const shouldPreload = preloadIds?.includes(item.id);
+
+    return {
+      ...item,
+      preloaded: !!shouldPreload,
+      displayImageUrl: shouldPreload ? item.displayImageUrl : undefined,
+    };
+  });
 
   return {
     displayName: "Saved",
-    items: await getContentSuggestionItemsFromSourceNodeIndex(
-      context,
-      sourceNodeIndex,
-    ),
+    items: suggestions,
   };
 };
 
@@ -62,157 +76,136 @@ export const getRecentSuggestionsSet = async (
   context: GraphQLContext,
   options: SuggestionsSetsOptions,
 ): Promise<ContentSuggestionsSet> => {
-  // Get the user's access records to obtain source and ids for nodes
+  // Get the user's access records to obtain source and ids for items
   const accesses = await getContentItemLatestReadAccesses(context, {
     limit: options.limit,
   });
-  const sourceNodeIndex = accesses
-    .map((access) =>
-      getContentSourceObjectAccessTrackingIdComponents(access.objectId),
-    )
-    .reduce(getSourceObjectIndex, {} as ItemIndex<ContentItem>);
+  const ids = accesses.map((access) => access.objectId);
+  if (!ids.length) {
+    return {
+      displayName: "Recent",
+      items: [],
+    };
+  }
+
+  const items = await getItems(context, { ids });
+  const mockedSuggestions = items.map(getContentSuggestionItemFromContentItem);
+
+  // Since we've already preloaded these due to mock, we need to modify them a bit.
+  // If items aren't _suppose_ to be preloaded,
+  // we need to strip out `displayImageUrl` to allow it lazy loading.
+  const preloadIndex = getPreloadSuggestionIdsIndex(mockedSuggestions, options);
+  const preloadIds = preloadIndex?.size
+    ? Array.from(preloadIndex.values())
+    : undefined;
+  const suggestions = mockedSuggestions.map((item) => {
+    const shouldPreload = preloadIds?.includes(item.id);
+
+    return {
+      ...item,
+      preloaded: !!shouldPreload,
+      displayImageUrl: shouldPreload ? item.displayImageUrl : undefined,
+    };
+  });
 
   return {
-    displayName: "Pick up where you left off",
-    items: await getContentSuggestionItemsFromSourceNodeIndex(
-      context,
-      sourceNodeIndex,
-    ),
+    displayName: "Recent",
+    items: suggestions,
   };
 };
-
-type ItemIndex<T> = Record<ContentItem["id"], T | undefined>;
-const getSourceObjectIndex = <T>(
-  index: ItemIndex<T>,
-  { objectId }: { objectId: string },
-): ItemIndex<T> => {
-  index ||= {};
-  index[objectId] = undefined;
-  return index;
-};
-
-const getContentSuggestionItemsFromSourceNodeIndex = async (
-  context: GraphQLContext,
-  sourceNodeIndex: ItemIndex<ContentItem>,
-): Promise<ContentSuggestionsItem[]> => {
-  const getNodeResults = await Promise.allSettled(
-    getNodesPromisesForSourceNodeIndex(context, sourceNodeIndex),
-  );
-  getNodeResults.forEach((result) => {
-    if (result.status === "rejected") {
-      return;
-    }
-
-    result.value.nodes.forEach((node) => {
-      sourceNodeIndex[node.id] = node;
-    });
-  });
-
-  return Object.entries(sourceNodeIndex).reduce((items, [id, item]) => {
-    const newItems = Object.values(items)
-      .filter(Boolean)
-      .map((item) => {
-        if (!item) {
-          throw new Error("item is undefined");
-        }
-
-        return getContentSuggestionItemFromContentItem(item);
-      });
-
-    return [...items, ...newItems];
-  }, [] as ContentSuggestionsItem[]);
-};
-
-const getNodesPromisesForSourceNodeIndex = (
-  context: GraphQLContext,
-  itemIndex: ItemIndex<ContentItem>,
-): Promise<ContentItem[]>[] =>
-  getItems(context, {
-    ids: Object.keys(itemIndex),
-  });
 
 export const getContentSuggestionItemFromContentItem = (
   item: ContentItem,
 ): ContentSuggestionsItem => ({
   displayImageUrl: item.displayImageUrl,
-  format: item.format,
-  nodeId: item.id,
+  id: item.id,
   preloaded: true,
   primary: item.displayName,
-  searchId: item.displayName,
-  secondary: undefined,
+  secondary: item.id,
 });
 
 export const getDynamicSuggestionsSets = async (
   context: GraphQLContext,
   options: SuggestionsSetsOptions,
 ): Promise<ContentSuggestionsSet[]> => {
-  return getCategorySuggestionsSets(context, options);
-};
-
-type SourceSuggestionSetReturn = {
-  set: ContentSuggestionsSet;
-  access: number;
-};
-export const getCategorySuggestionsSets = async (
-  context: GraphQLContext,
-  options: SuggestionsSetsOptions,
-): Promise<SourceSuggestionSetReturn[]> => {
   try {
-    const predictions = await getPredictions(context, {
-      maxResults: options.limit,
-      // threshold: undefined,
+    // Gather genres
+    const genresSet = new Set<string>();
+    mockItems.forEach((item) => {
+      if (!item.genres?.length) {
+        return;
+      }
+
+      item.genres.forEach((genre) => genresSet.add(genre));
+    });
+    // Select 'some' for display
+    const displayGenres: string[] = [];
+    Array.from(genresSet).forEach((genre) => {
+      if (displayGenres.length >= 4 || Math.random() >= 0.5) {
+        return;
+      }
+
+      displayGenres.push(genre);
     });
 
-    const items = predictions.results.map(
-      (prediction): ContentSuggestionsItem => ({
-        format: prediction.format,
-        preloaded: false, // See preloadSuggestions()
-        primary: prediction.displayName,
-        secondary: undefined,
-        nodeId: prediction.entityId,
-      }),
-    );
-
-    // Since we've already preloaded these, we need to modify them a bit.
-    // If items aren't _suppose_ to be preloaded,
-    // we need to strip out `displayImageUrl` to allow it lazy loading.
-    const preloadIndex = getPreloadSuggestionIdsIndex(items, options);
-    const preloadIds = preloadIndex?.size
-      ? Array.from(preloadIndex.values())
-      : undefined;
-
-    const nodes = preloadIds?.length
-      ? await getItems(context, {
-          ids: preloadIds,
-        })
-      : undefined;
-    const nodesIndex = nodes ? getItemsIndex(nodes) : {};
-
-    const preloadedItems = items.map((item) =>
-      item.nodeId && nodesIndex[item.nodeId]
-        ? {
-            ...item,
-            displayImageUrl: nodesIndex[item.nodeId].displayImageUrl,
-            preloaded: true,
+    // Build an index of genres and full content items
+    const genresFullItemIndex = displayGenres.reduce(
+      (index, genre) => {
+        index[genre] = [];
+        mockItems.forEach((item) => {
+          if (
+            index[genre].length >= options.limit ||
+            !item.genres?.includes(genre)
+          ) {
+            return;
           }
-        : item,
+          index[genre].push(item);
+        });
+        return index;
+      },
+      {} as Record<string, ContentItem[]>,
     );
 
-    return [
-      {
-        access: (access?.timestamp
-          ? new Date(access.timestamp)
-          : new Date()
-        ).getTime(),
-        set: {
-          displayName: source.displayName,
-          items: preloadedItems,
-        },
+    // Translate the full content items into suggestions
+    // ☣️ This probably should be done in one step to avoid memory, but it's minor.
+    const genresSuggestionItemIndex = Object.entries(
+      genresFullItemIndex,
+    ).reduce(
+      (index, [genre, items]) => {
+        index[genre] = [];
+        items.map((item) => {
+          index[genre].push(getContentSuggestionItemFromContentItem(item));
+        });
+
+        return index;
       },
-    ];
+      {} as Record<string, ContentSuggestionsItem[]>,
+    );
+
+    return Object.entries(genresSuggestionItemIndex).map(([genre, items]) => {
+      // Since we've already preloaded these due to mock, we need to modify them a bit.
+      // If items aren't _suppose_ to be preloaded,
+      // we need to strip out `displayImageUrl` to allow it lazy loading.
+      const preloadIndex = getPreloadSuggestionIdsIndex(items, options);
+      const preloadIds = preloadIndex?.size
+        ? Array.from(preloadIndex.values())
+        : undefined;
+
+      return {
+        displayName: genre.toLocaleUpperCase(),
+        items: items.map((item) => {
+          const shouldPreload = preloadIds?.includes(item.id);
+
+          return {
+            ...item,
+            preloaded: !!shouldPreload,
+            displayImageUrl: shouldPreload ? item.displayImageUrl : undefined,
+          };
+        }),
+      };
+    });
   } catch (reason) {
-    context.logger.error(`getSourceSuggestionsSets for failed: ${reason}`);
+    context.logger.error(`getDynamicSuggestionsSets for failed: ${reason}`);
     throw reason;
   }
 };

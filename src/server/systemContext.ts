@@ -20,7 +20,7 @@ export const useSystemContext = (app: Application): void => {
 };
 
 /** Provides the internal repos and library instances that are required during bootstrap */
-export const getSystemContext = async (): Promise<SystemContext> => {
+export const getSystemContext = (): SystemContext => {
   // const db = await getDb();
   return {
     logger,
