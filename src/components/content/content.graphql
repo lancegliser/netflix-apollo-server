@@ -40,6 +40,8 @@ type ContentItem implements IId & ICached & IDisplayName & IDisplayImage {
   summary: String
   format: ContentItemFormat!
   genres: [String!]
+  "A value between 0 and 1 representing the average rating across all users."
+  rating: Float
 }
 
 enum ContentItemFormat {

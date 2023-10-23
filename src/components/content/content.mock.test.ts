@@ -21311,6 +21311,7 @@ describe("content mock", () => {
         genres: movie.genres,
         summary: movie.extract,
         id: v4(),
+        rating: Math.random(),
       }));
     expect(items.length).toBeTruthy();
     console.info(JSON.stringify(items.slice(500)));

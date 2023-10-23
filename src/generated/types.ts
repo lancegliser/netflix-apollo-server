@@ -135,6 +135,8 @@ export type ContentItem = ICached &
     genres?: Maybe<Array<Scalars["String"]["output"]>>;
     /** The primary id for this type. Typically in the form of Contract/12887867. */
     id: Scalars["ID"]["output"];
+    /** A value between 0 and 1 representing the average rating across all users. */
+    rating?: Maybe<Scalars["Float"]["output"]>;
     /** Defines if the current user has saved this item or not as stored by in the application layer */
     saved?: Maybe<SavedRecord>;
     summary?: Maybe<Scalars["String"]["output"]>;
@@ -545,6 +547,7 @@ export type ResolversTypes = {
   ContentSuggestions: ResolverTypeWrapper<ContentSuggestions>;
   ContentSuggestionsItem: ResolverTypeWrapper<ContentSuggestionsItem>;
   ContentSuggestionsSet: ResolverTypeWrapper<ContentSuggestionsSet>;
+  Float: ResolverTypeWrapper<Scalars["Float"]["output"]>;
   ICached: ResolverTypeWrapper<
     ResolversInterfaceTypes<ResolversTypes>["ICached"]
   >;
@@ -595,6 +598,7 @@ export type ResolversParentTypes = {
   ContentSuggestions: ContentSuggestions;
   ContentSuggestionsItem: ContentSuggestionsItem;
   ContentSuggestionsSet: ContentSuggestionsSet;
+  Float: Scalars["Float"]["output"];
   ICached: ResolversInterfaceTypes<ResolversParentTypes>["ICached"];
   ICreated: ResolversInterfaceTypes<ResolversParentTypes>["ICreated"];
   ID: Scalars["ID"]["output"];
@@ -732,6 +736,7 @@ export type ContentItemResolvers<
     ContextType
   >;
   id?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  rating?: Resolver<Maybe<ResolversTypes["Float"]>, ParentType, ContextType>;
   saved?: Resolver<
     Maybe<ResolversTypes["SavedRecord"]>,
     ParentType,

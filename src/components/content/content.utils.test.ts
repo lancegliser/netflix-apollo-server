@@ -61,7 +61,7 @@ describe("content utils", () => {
     });
   });
 
-  describe("getitem", () => {
+  describe("getItem", () => {
     it("should return item by id, cached on subsequent calls", async () => {
       const item = mockItems.at(0);
       if (!item) {
