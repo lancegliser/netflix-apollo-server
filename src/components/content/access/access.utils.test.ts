@@ -14,7 +14,7 @@ describe("content utils", () => {
             .fill(0)
             .map(() =>
               trackContentObjectAccess(
-                "ContentItem",
+                "ContentItem-Test",
                 Math.random().toFixed(4),
                 ContentAccessOperation.Read,
                 context,

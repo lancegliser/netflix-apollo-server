@@ -37,14 +37,20 @@ export const getItems = async (
     return Object.values(itemIndex).filter(Boolean) as ContentItem[];
   }
 
-  const filteredItems = mockItems.filter(({ id }) => ids.includes(id));
-
   // Store those objects into the cache and update our index to return
   await Promise.all(
-    filteredItems.map(async (item) => {
-      const cached = await setContentItemCache(context, { id: item.id }, item);
+    cacheMisses.map(async ({ id }) => {
+      const fullItem = mockItems.find((item) => item.id === id);
+      if (!fullItem) {
+        throw new Error(`Content ${id} could not be found`);
+      }
+      const cached = await setContentItemCache(
+        context,
+        { id: fullItem.id },
+        fullItem,
+      );
       if (!cached) {
-        throw new Error(`Failed to cache ${item.id}`);
+        throw new Error(`Failed to cache ${fullItem.id}`);
       }
 
       itemIndex[cached.id] = cached;

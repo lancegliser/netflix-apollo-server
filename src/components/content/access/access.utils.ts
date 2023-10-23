@@ -2,7 +2,7 @@ import { AccessRecord, ContentAccessOperation } from "../../../generated/types";
 import { GraphQLContext } from "../../context";
 
 export const trackContentObjectAccess = async (
-  objectType: "ContentItem",
+  objectType: "ContentItem" | "ContentItem-Test",
   objectId: string,
   operation: ContentAccessOperation,
   context: Pick<GraphQLContext, "authentication" | "accessRepo">,
