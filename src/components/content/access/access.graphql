@@ -1,0 +1,14 @@
+extend type ContentMutations {
+  """
+  Updates the access records for the current user and the identified object.
+  """
+  trackItemAccess(
+    objectId: String!
+    operation: ContentAccessOperation!
+  ): AccessRecord! @auth
+}
+
+enum ContentAccessOperation {
+  Read
+  Write
+}

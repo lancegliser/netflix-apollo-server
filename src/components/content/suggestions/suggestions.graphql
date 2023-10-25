@@ -1,0 +1,78 @@
+extend type Content {
+  "Returns items a user should consider viewing"
+  suggestions(
+    """
+    The maximum number of results to return within each ContentSuggestionSet.
+    User devices or bandwidth preferences may dictate decreased volume.
+    """
+    limit: Int
+    """
+    The number of suggestions that will be preload in each set.
+    This will be used to preload `displayImageUrl` to improve performance if provided.
+    """
+    preload: Int
+    """
+    Some applications may require the last item to be preloaded, such as previewing reverse behaviors.
+    This will be used to preload `displayImageUrl` to improve performance if provided.
+    """
+    preloadLast: Boolean
+  ): ContentSuggestions! @auth
+}
+
+type ContentSuggestions {
+  """
+  Suggestion groups organized by specific scores for against a measurement inside a single source.
+  Visual priority: 4
+  """
+  dynamic: [ContentSuggestionsSet!]!
+  """
+  A hand curated selection of items for promotion in specialized display.
+  Items will be intermixed between sources.
+  Visual priority: 1
+  """
+  featured: ContentSuggestionsSet!
+  """
+  A hand curated selection of items for promotion in specialized display.
+  Items will be intermixed between sources.
+  Visual priority: 3
+  """
+  promoted: ContentSuggestionsSet!
+  """
+  A user specific select based on recent access.
+  Items will be intermixed between sources.
+  Visual priority: 2
+  """
+  recent: ContentSuggestionsSet!
+  """
+  A user specific selection of items.
+  Items will be intermixed between sources.
+  Visual priority: 2
+  """
+  saved: ContentSuggestionsSet!
+}
+
+type ContentSuggestionsSet implements IDisplayName {
+  """
+  A preformatted display name safe to display in HTML context
+  """
+  displayName: String
+
+  # Non-interface fields
+  items: [ContentSuggestionsItem!]!
+}
+
+type ContentSuggestionsItem implements IDisplayImage {
+  """
+  A public url name safe to display in any HTML context
+  A display image url may be supplied for some items in suggestions to provide a faster initial page load.
+  This will be based on the input parameters.
+  """
+  displayImageUrl: String
+
+  # Non-interface fields
+  primary: String!
+  secondary: String
+  id: String!
+  "If this item's fields were preloaded due to the query's initialDisplay argument"
+  preloaded: Boolean!
+}

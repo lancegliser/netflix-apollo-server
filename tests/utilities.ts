@@ -34,6 +34,7 @@ export const withGraphQLContext = async (
   await withSystemContext(async (systemContext) => {
     await fn({
       ...systemContext,
+      cache: {},
       authentication: {
         credentials: {
           accessToken: "",

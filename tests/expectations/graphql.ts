@@ -67,3 +67,8 @@ export const expectGraphQLSuccessResponse = (response: Response): void => {
 
   expect(response.status).toBe(200);
 };
+
+export const expectForbiddenGraphQLResponse = (response: Response) => {
+  // @ts-expect-error meh
+  expect(response.body.errors?.at(0)?.extensions?.code).toBe("FORBIDDEN");
+};

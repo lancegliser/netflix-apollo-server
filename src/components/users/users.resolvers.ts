@@ -36,19 +36,20 @@ const usersResolvers: UsersQueryResolvers = {
   search: async (_, args) => {
     const limit = args.limit || 10;
     const offset = args.offset || 0;
-    let sortedUsers = !args.order
+
+    let timeA: number;
+    let timeB: number;
+    const sortedUsers = !args.order
       ? usersSample
       : usersSample.sort((a, b) => {
           const ascValue = args.order?.direction === "Descending" ? -1 : 1;
           const descValue = ascValue * -1;
           switch (args.order?.method) {
             case "DisplayName":
-              const displayNameA = a.displayName || "";
-              const displayNameB = b.displayName || "";
-              return displayNameA > displayNameB ? ascValue : descValue;
+              return (a.displayName || "").localeCompare(b.displayName || "");
             case "CreatedAt":
-              const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-              const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
               return timeA > timeB ? ascValue : descValue;
             case "Id":
             default:

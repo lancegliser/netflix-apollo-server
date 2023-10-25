@@ -1,0 +1,11 @@
+extend type ContentMutations {
+  "Saves an object for the user to return to later."
+  addSavedItem("The content's id" objectId: String!): SavedRecord! @auth
+  "Deletes a saved object for the user and returns it it existed"
+  deleteSavedObject("The SaveRecord's id" id: ID!): SavedRecord @auth
+}
+
+extend type ContentItem {
+  "Defines if the current user has saved this item or not as stored by in the application layer"
+  saved: SavedRecord
+}

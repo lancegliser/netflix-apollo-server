@@ -1,0 +1,18 @@
+type SavedRecord implements ICreated & IId {
+  """
+  ISO date time string for the time this resource was created
+  """
+  createdAt: String!
+  """
+  Unique identifier for users that created this resource
+  """
+  createdBy: String!
+  """
+  The primary id for this type. Typically a UUID.
+  """
+  id: ID!
+
+  # Non-interface fields
+  objectType: String!
+  objectId: String!
+}

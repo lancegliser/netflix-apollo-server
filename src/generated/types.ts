@@ -38,6 +38,18 @@ export type Scalars = {
   Upload: { input: any; output: any };
 };
 
+export type AccessRecord = {
+  __typename?: "AccessRecord";
+  accessorId: Scalars["String"]["output"];
+  /** A UUID */
+  id: Scalars["ID"]["output"];
+  objectId: Scalars["String"]["output"];
+  objectType: Scalars["String"]["output"];
+  operation: Scalars["String"]["output"];
+  /** ISO Format */
+  timestamp: Scalars["String"]["output"];
+};
+
 /** A base definition authentication actors. Customized from the auth-api generated types. */
 export type AuthenticationIdentity = ICreated &
   IDisplayImage &
@@ -74,6 +86,154 @@ export enum AuthenticationRole {
   Anonymous = "Anonymous",
   Authenticated = "Authenticated",
 }
+
+export type Content = {
+  __typename?: "Content";
+  /** Return a single item by id */
+  item: ContentItem;
+  /** Return many items by ids */
+  items: Array<ContentItem>;
+  /** Returns items a user should consider viewing */
+  suggestions: ContentSuggestions;
+};
+
+export type ContentItemArgs = {
+  id: Scalars["ID"]["input"];
+};
+
+export type ContentItemsArgs = {
+  ids: Array<Scalars["ID"]["input"]>;
+};
+
+export type ContentSuggestionsArgs = {
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  preload?: InputMaybe<Scalars["Int"]["input"]>;
+  preloadLast?: InputMaybe<Scalars["Boolean"]["input"]>;
+};
+
+export enum ContentAccessOperation {
+  Read = "Read",
+  Write = "Write",
+}
+
+export type ContentItem = ICached &
+  IDisplayImage &
+  IDisplayName &
+  IId & {
+    __typename?: "ContentItem";
+    /** ISO date time string for the time this resource was created */
+    cachedAt?: Maybe<Scalars["String"]["output"]>;
+    /**
+     * A value that can be included into <img src /> properties.
+     * In some environments, this may be a base64 encoded data URL.
+     * Do *not* request in mass across an entire search result.
+     */
+    displayImageUrl?: Maybe<Scalars["String"]["output"]>;
+    /** A preformatted display name safe to display in HTML context */
+    displayName: Scalars["String"]["output"];
+    format: ContentItemFormat;
+    genres?: Maybe<Array<Scalars["String"]["output"]>>;
+    /** The primary id for this type. Typically in the form of Contract/12887867. */
+    id: Scalars["ID"]["output"];
+    /** A value between 0 and 1 representing the average rating across all users. */
+    rating?: Maybe<Scalars["Float"]["output"]>;
+    /** Defines if the current user has saved this item or not as stored by in the application layer */
+    saved?: Maybe<SavedRecord>;
+    summary?: Maybe<Scalars["String"]["output"]>;
+  };
+
+export enum ContentItemFormat {
+  Movie = "Movie",
+  Series = "Series",
+}
+
+export type ContentMutations = {
+  __typename?: "ContentMutations";
+  /** Saves an object for the user to return to later. */
+  addSavedItem: SavedRecord;
+  /** Deletes a saved object for the user and returns it it existed */
+  deleteSavedObject?: Maybe<SavedRecord>;
+  /**
+   * A place holder allowing extension in other files
+   * @deprecated Field no longer supported
+   */
+  noop?: Maybe<Scalars["Boolean"]["output"]>;
+  /** Updates the access records for the current user and the identified object. */
+  trackItemAccess: AccessRecord;
+};
+
+export type ContentMutationsAddSavedItemArgs = {
+  objectId: Scalars["String"]["input"];
+};
+
+export type ContentMutationsDeleteSavedObjectArgs = {
+  id: Scalars["ID"]["input"];
+};
+
+export type ContentMutationsTrackItemAccessArgs = {
+  objectId: Scalars["String"]["input"];
+  operation: ContentAccessOperation;
+};
+
+export type ContentSuggestions = {
+  __typename?: "ContentSuggestions";
+  /**
+   * Suggestion groups organized by specific scores for against a measurement inside a single source.
+   * Visual priority: 4
+   */
+  dynamic: Array<ContentSuggestionsSet>;
+  /**
+   * A hand curated selection of items for promotion in specialized display.
+   * Items will be intermixed between sources.
+   * Visual priority: 1
+   */
+  featured: ContentSuggestionsSet;
+  /**
+   * A hand curated selection of items for promotion in specialized display.
+   * Items will be intermixed between sources.
+   * Visual priority: 3
+   */
+  promoted: ContentSuggestionsSet;
+  /**
+   * A user specific select based on recent access.
+   * Items will be intermixed between sources.
+   * Visual priority: 2
+   */
+  recent: ContentSuggestionsSet;
+  /**
+   * A user specific selection of items.
+   * Items will be intermixed between sources.
+   * Visual priority: 2
+   */
+  saved: ContentSuggestionsSet;
+};
+
+export type ContentSuggestionsItem = IDisplayImage & {
+  __typename?: "ContentSuggestionsItem";
+  /**
+   * A public url name safe to display in any HTML context
+   * A display image url may be supplied for some items in suggestions to provide a faster initial page load.
+   * This will be based on the input parameters.
+   */
+  displayImageUrl?: Maybe<Scalars["String"]["output"]>;
+  id: Scalars["String"]["output"];
+  /** If this item's fields were preloaded due to the query's initialDisplay argument */
+  preloaded: Scalars["Boolean"]["output"];
+  primary: Scalars["String"]["output"];
+  secondary?: Maybe<Scalars["String"]["output"]>;
+};
+
+export type ContentSuggestionsSet = IDisplayName & {
+  __typename?: "ContentSuggestionsSet";
+  /** A preformatted display name safe to display in HTML context */
+  displayName?: Maybe<Scalars["String"]["output"]>;
+  items: Array<ContentSuggestionsItem>;
+};
+
+export type ICached = {
+  /** ISO date time string for the time this resource was created */
+  cachedAt?: Maybe<Scalars["String"]["output"]>;
+};
 
 export type ICreated = {
   /** ISO date time string for the time this resource was created */
@@ -116,18 +276,33 @@ export type IUpdated = {
 
 export type Mutation = {
   __typename?: "Mutation";
+  content: ContentMutations;
   /** Provides name spaced users functionality */
   users: UsersMutations;
 };
 
 export type Query = {
   __typename?: "Query";
+  content: Content;
   /** A base definition authentication actors */
   self?: Maybe<AuthenticationIdentity>;
   system: System;
   /** Provides name spaced users functionality */
   users: UsersQuery;
 };
+
+export type SavedRecord = ICreated &
+  IId & {
+    __typename?: "SavedRecord";
+    /** ISO date time string for the time this resource was created */
+    createdAt: Scalars["String"]["output"];
+    /** Unique identifier for users that created this resource */
+    createdBy: Scalars["String"]["output"];
+    /** The primary id for this type. Typically a UUID. */
+    id: Scalars["ID"]["output"];
+    objectId: Scalars["String"]["output"];
+    objectType: Scalars["String"]["output"];
+  };
 
 export enum SortDirection {
   Ascending = "Ascending",
@@ -345,19 +520,37 @@ export type DirectiveResolverFn<
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<RefType extends Record<string, unknown>> = {
-  ICreated: AuthenticationIdentity | User;
-  IDisplayImage: AuthenticationIdentity;
-  IDisplayName: AuthenticationIdentity | User;
-  IId: AuthenticationIdentity;
+  ICached: ContentItem;
+  ICreated: AuthenticationIdentity | SavedRecord | User;
+  IDisplayImage: AuthenticationIdentity | ContentItem | ContentSuggestionsItem;
+  IDisplayName:
+    | AuthenticationIdentity
+    | ContentItem
+    | ContentSuggestionsSet
+    | User;
+  IId: AuthenticationIdentity | ContentItem | SavedRecord;
   IOffsetPaging: UsersSearchPagedResponse;
   IUpdated: AuthenticationIdentity | User;
 };
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
+  AccessRecord: ResolverTypeWrapper<AccessRecord>;
   AuthenticationIdentity: ResolverTypeWrapper<AuthenticationIdentity>;
   AuthenticationRole: AuthenticationRole;
   Boolean: ResolverTypeWrapper<Scalars["Boolean"]["output"]>;
+  Content: ResolverTypeWrapper<Content>;
+  ContentAccessOperation: ContentAccessOperation;
+  ContentItem: ResolverTypeWrapper<ContentItem>;
+  ContentItemFormat: ContentItemFormat;
+  ContentMutations: ResolverTypeWrapper<ContentMutations>;
+  ContentSuggestions: ResolverTypeWrapper<ContentSuggestions>;
+  ContentSuggestionsItem: ResolverTypeWrapper<ContentSuggestionsItem>;
+  ContentSuggestionsSet: ResolverTypeWrapper<ContentSuggestionsSet>;
+  Float: ResolverTypeWrapper<Scalars["Float"]["output"]>;
+  ICached: ResolverTypeWrapper<
+    ResolversInterfaceTypes<ResolversTypes>["ICached"]
+  >;
   ICreated: ResolverTypeWrapper<
     ResolversInterfaceTypes<ResolversTypes>["ICreated"]
   >;
@@ -379,6 +572,7 @@ export type ResolversTypes = {
   JSON: ResolverTypeWrapper<Scalars["JSON"]["output"]>;
   Mutation: ResolverTypeWrapper<{}>;
   Query: ResolverTypeWrapper<{}>;
+  SavedRecord: ResolverTypeWrapper<SavedRecord>;
   SortDirection: SortDirection;
   String: ResolverTypeWrapper<Scalars["String"]["output"]>;
   System: ResolverTypeWrapper<System>;
@@ -395,8 +589,17 @@ export type ResolversTypes = {
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
+  AccessRecord: AccessRecord;
   AuthenticationIdentity: AuthenticationIdentity;
   Boolean: Scalars["Boolean"]["output"];
+  Content: Content;
+  ContentItem: ContentItem;
+  ContentMutations: ContentMutations;
+  ContentSuggestions: ContentSuggestions;
+  ContentSuggestionsItem: ContentSuggestionsItem;
+  ContentSuggestionsSet: ContentSuggestionsSet;
+  Float: Scalars["Float"]["output"];
+  ICached: ResolversInterfaceTypes<ResolversParentTypes>["ICached"];
   ICreated: ResolversInterfaceTypes<ResolversParentTypes>["ICreated"];
   ID: Scalars["ID"]["output"];
   IDisplayImage: ResolversInterfaceTypes<ResolversParentTypes>["IDisplayImage"];
@@ -408,6 +611,7 @@ export type ResolversParentTypes = {
   JSON: Scalars["JSON"]["output"];
   Mutation: {};
   Query: {};
+  SavedRecord: SavedRecord;
   String: Scalars["String"]["output"];
   System: System;
   SystemConfig: SystemConfig;
@@ -430,6 +634,20 @@ export type AuthDirectiveResolver<
   ContextType = GraphQLContext,
   Args = AuthDirectiveArgs,
 > = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+
+export type AccessRecordResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes["AccessRecord"] = ResolversParentTypes["AccessRecord"],
+> = {
+  accessorId?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  objectId?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  objectType?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  operation?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  timestamp?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
 
 export type AuthenticationIdentityResolvers<
   ContextType = GraphQLContext,
@@ -469,13 +687,180 @@ export type AuthenticationIdentityResolvers<
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type ContentResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes["Content"] = ResolversParentTypes["Content"],
+> = {
+  item?: Resolver<
+    ResolversTypes["ContentItem"],
+    ParentType,
+    ContextType,
+    RequireFields<ContentItemArgs, "id">
+  >;
+  items?: Resolver<
+    Array<ResolversTypes["ContentItem"]>,
+    ParentType,
+    ContextType,
+    RequireFields<ContentItemsArgs, "ids">
+  >;
+  suggestions?: Resolver<
+    ResolversTypes["ContentSuggestions"],
+    ParentType,
+    ContextType,
+    Partial<ContentSuggestionsArgs>
+  >;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ContentItemResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes["ContentItem"] = ResolversParentTypes["ContentItem"],
+> = {
+  cachedAt?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+  displayImageUrl?: Resolver<
+    Maybe<ResolversTypes["String"]>,
+    ParentType,
+    ContextType
+  >;
+  displayName?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  format?: Resolver<
+    ResolversTypes["ContentItemFormat"],
+    ParentType,
+    ContextType
+  >;
+  genres?: Resolver<
+    Maybe<Array<ResolversTypes["String"]>>,
+    ParentType,
+    ContextType
+  >;
+  id?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  rating?: Resolver<Maybe<ResolversTypes["Float"]>, ParentType, ContextType>;
+  saved?: Resolver<
+    Maybe<ResolversTypes["SavedRecord"]>,
+    ParentType,
+    ContextType
+  >;
+  summary?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ContentMutationsResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes["ContentMutations"] = ResolversParentTypes["ContentMutations"],
+> = {
+  addSavedItem?: Resolver<
+    ResolversTypes["SavedRecord"],
+    ParentType,
+    ContextType,
+    RequireFields<ContentMutationsAddSavedItemArgs, "objectId">
+  >;
+  deleteSavedObject?: Resolver<
+    Maybe<ResolversTypes["SavedRecord"]>,
+    ParentType,
+    ContextType,
+    RequireFields<ContentMutationsDeleteSavedObjectArgs, "id">
+  >;
+  noop?: Resolver<Maybe<ResolversTypes["Boolean"]>, ParentType, ContextType>;
+  trackItemAccess?: Resolver<
+    ResolversTypes["AccessRecord"],
+    ParentType,
+    ContextType,
+    RequireFields<ContentMutationsTrackItemAccessArgs, "objectId" | "operation">
+  >;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ContentSuggestionsResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes["ContentSuggestions"] = ResolversParentTypes["ContentSuggestions"],
+> = {
+  dynamic?: Resolver<
+    Array<ResolversTypes["ContentSuggestionsSet"]>,
+    ParentType,
+    ContextType
+  >;
+  featured?: Resolver<
+    ResolversTypes["ContentSuggestionsSet"],
+    ParentType,
+    ContextType
+  >;
+  promoted?: Resolver<
+    ResolversTypes["ContentSuggestionsSet"],
+    ParentType,
+    ContextType
+  >;
+  recent?: Resolver<
+    ResolversTypes["ContentSuggestionsSet"],
+    ParentType,
+    ContextType
+  >;
+  saved?: Resolver<
+    ResolversTypes["ContentSuggestionsSet"],
+    ParentType,
+    ContextType
+  >;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ContentSuggestionsItemResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes["ContentSuggestionsItem"] = ResolversParentTypes["ContentSuggestionsItem"],
+> = {
+  displayImageUrl?: Resolver<
+    Maybe<ResolversTypes["String"]>,
+    ParentType,
+    ContextType
+  >;
+  id?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  preloaded?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  primary?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  secondary?: Resolver<
+    Maybe<ResolversTypes["String"]>,
+    ParentType,
+    ContextType
+  >;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ContentSuggestionsSetResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes["ContentSuggestionsSet"] = ResolversParentTypes["ContentSuggestionsSet"],
+> = {
+  displayName?: Resolver<
+    Maybe<ResolversTypes["String"]>,
+    ParentType,
+    ContextType
+  >;
+  items?: Resolver<
+    Array<ResolversTypes["ContentSuggestionsItem"]>,
+    ParentType,
+    ContextType
+  >;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ICachedResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes["ICached"] = ResolversParentTypes["ICached"],
+> = {
+  __resolveType: TypeResolveFn<"ContentItem", ParentType, ContextType>;
+  cachedAt?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+};
+
 export type ICreatedResolvers<
   ContextType = GraphQLContext,
   ParentType extends
     ResolversParentTypes["ICreated"] = ResolversParentTypes["ICreated"],
 > = {
   __resolveType: TypeResolveFn<
-    "AuthenticationIdentity" | "User",
+    "AuthenticationIdentity" | "SavedRecord" | "User",
     ParentType,
     ContextType
   >;
@@ -497,7 +882,7 @@ export type IDisplayImageResolvers<
     ResolversParentTypes["IDisplayImage"] = ResolversParentTypes["IDisplayImage"],
 > = {
   __resolveType: TypeResolveFn<
-    "AuthenticationIdentity",
+    "AuthenticationIdentity" | "ContentItem" | "ContentSuggestionsItem",
     ParentType,
     ContextType
   >;
@@ -514,7 +899,7 @@ export type IDisplayNameResolvers<
     ResolversParentTypes["IDisplayName"] = ResolversParentTypes["IDisplayName"],
 > = {
   __resolveType: TypeResolveFn<
-    "AuthenticationIdentity" | "User",
+    "AuthenticationIdentity" | "ContentItem" | "ContentSuggestionsSet" | "User",
     ParentType,
     ContextType
   >;
@@ -530,7 +915,7 @@ export type IIdResolvers<
   ParentType extends ResolversParentTypes["IId"] = ResolversParentTypes["IId"],
 > = {
   __resolveType: TypeResolveFn<
-    "AuthenticationIdentity",
+    "AuthenticationIdentity" | "ContentItem" | "SavedRecord",
     ParentType,
     ContextType
   >;
@@ -584,6 +969,11 @@ export type MutationResolvers<
   ParentType extends
     ResolversParentTypes["Mutation"] = ResolversParentTypes["Mutation"],
 > = {
+  content?: Resolver<
+    ResolversTypes["ContentMutations"],
+    ParentType,
+    ContextType
+  >;
   users?: Resolver<ResolversTypes["UsersMutations"], ParentType, ContextType>;
 };
 
@@ -592,6 +982,7 @@ export type QueryResolvers<
   ParentType extends
     ResolversParentTypes["Query"] = ResolversParentTypes["Query"],
 > = {
+  content?: Resolver<ResolversTypes["Content"], ParentType, ContextType>;
   self?: Resolver<
     Maybe<ResolversTypes["AuthenticationIdentity"]>,
     ParentType,
@@ -599,6 +990,19 @@ export type QueryResolvers<
   >;
   system?: Resolver<ResolversTypes["System"], ParentType, ContextType>;
   users?: Resolver<ResolversTypes["UsersQuery"], ParentType, ContextType>;
+};
+
+export type SavedRecordResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes["SavedRecord"] = ResolversParentTypes["SavedRecord"],
+> = {
+  createdAt?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  createdBy?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  objectId?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  objectType?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type SystemResolvers<
@@ -714,7 +1118,15 @@ export type UsersSearchPagedResponseResolvers<
 };
 
 export type Resolvers<ContextType = GraphQLContext> = {
+  AccessRecord?: AccessRecordResolvers<ContextType>;
   AuthenticationIdentity?: AuthenticationIdentityResolvers<ContextType>;
+  Content?: ContentResolvers<ContextType>;
+  ContentItem?: ContentItemResolvers<ContextType>;
+  ContentMutations?: ContentMutationsResolvers<ContextType>;
+  ContentSuggestions?: ContentSuggestionsResolvers<ContextType>;
+  ContentSuggestionsItem?: ContentSuggestionsItemResolvers<ContextType>;
+  ContentSuggestionsSet?: ContentSuggestionsSetResolvers<ContextType>;
+  ICached?: ICachedResolvers<ContextType>;
   ICreated?: ICreatedResolvers<ContextType>;
   IDisplayImage?: IDisplayImageResolvers<ContextType>;
   IDisplayName?: IDisplayNameResolvers<ContextType>;
@@ -724,6 +1136,7 @@ export type Resolvers<ContextType = GraphQLContext> = {
   JSON?: GraphQLScalarType;
   Mutation?: MutationResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  SavedRecord?: SavedRecordResolvers<ContextType>;
   System?: SystemResolvers<ContextType>;
   SystemConfig?: SystemConfigResolvers<ContextType>;
   Upload?: GraphQLScalarType;

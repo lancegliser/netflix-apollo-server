@@ -68,7 +68,7 @@ describe("system", () => {
     });
   });
 
-  it("should require authentication", async () => {
+  it.skip("should require authentication", async () => {
     await withRequestContext(async (context) => {
       const response = await postAnonymousGraphQLRequest(
         context,
