@@ -59,12 +59,12 @@ type ContentLatestReadAccessesOptions = {
 export const getContentItemLatestReadAccesses = async (
   context: Pick<GraphQLContext, "authentication" | "accessRepo">,
   options?: ContentLatestReadAccessesOptions,
-): Promise<AccessRecord[]> => {
+): Promise<Omit<AccessRecord, "id">[]> => {
   if (!context.authentication?.identity?.id) {
     throw new Error("context.authentication?.identity?.id is undefined");
   }
 
-  return context.accessRepo.query({
+  return context.accessRepo.queryDistinctAccessObjects({
     accessorIds: context.authentication.identity.id,
     objectTypes: "ContentItem",
     operations: ContentAccessOperation.Read,

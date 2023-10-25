@@ -4,7 +4,7 @@ import {
   PostgresRepo,
   PostgresScalar,
 } from "../../utilities/postgres";
-import { Pool } from "pg";
+import { Pool, PoolClient } from "pg";
 import { getPostgresConnectionPool, schema } from "../../config/postgres";
 import { AccessRecord } from "../../generated/types";
 import { v4 } from "uuid";
@@ -128,15 +128,11 @@ export class AccessRepo extends PostgresRepo {
     }
   }
 
-  async query(parameters: {
-    accessorIds?: string | string[];
-    objectTypes?: string | string[];
-    objectIds?: string | string[];
-    operations?: string | string[];
-    sortMethod?: "timestamp asc" | "timestamp desc";
-    limit?: number;
-    offset?: number;
-  }): Promise<AccessRecord[]> {
+  /**
+   * Searches for absolute access records state. Duplicates of an object are likely.
+   * Consider queryDistinctAccessObjects() in many cases
+   */
+  async query(parameters: QueryParameters): Promise<AccessRecord[]> {
     const {
       accessorIds: accessor_id,
       objectTypes: object_type,
@@ -148,39 +144,15 @@ export class AccessRepo extends PostgresRepo {
     } = parameters;
     const client = await this.pool.connect();
 
-    type ConditionValue = undefined | string | string[];
-    type Condition = {
-      field: string;
-      sql: string;
-      value: ConditionValue;
-    };
-    const getNamedCondition = (
-      field: string,
-      values: ConditionValue,
-    ): Condition | undefined => {
-      if (!values || (Array.isArray(values) && !values.length)) {
-        return undefined;
-      }
-
-      const arrayValues = Array.isArray(values) ? values : [values];
-      const sql = `${client.escapeIdentifier(field)} = ${
-        arrayValues.length > 1 ? `ANY(:${field})` : `:${field}`
-      }`;
-      return {
-        field,
-        sql,
-        value: arrayValues.length > 1 ? arrayValues : arrayValues[0],
-      };
-    };
-
-    const conditions = [
-      getNamedCondition("accessor_id", accessor_id),
-      getNamedCondition("object_type", object_type),
-      getNamedCondition("object_id", object_id),
-      getNamedCondition("operation", operation),
-    ].filter(Boolean);
-    const { query, values } = this.convertNamedParameters(
-      `
+    try {
+      const conditions = [
+        getNamedCondition(client, "accessor_id", accessor_id),
+        getNamedCondition(client, "object_type", object_type),
+        getNamedCondition(client, "object_id", object_id),
+        getNamedCondition(client, "operation", operation),
+      ].filter(Boolean);
+      const { query, values } = this.convertNamedParameters(
+        `
         SELECT id, accessor_id, object_type, object_id, operation, "timestamp"
         FROM ${this.schema}.${AccessRepo.accessTrackingTableName}
         WHERE ${conditions.map((condition) => condition!.sql).join(`\nAND `)}
@@ -188,24 +160,113 @@ export class AccessRepo extends PostgresRepo {
         LIMIT :limit
         OFFSET :offset;
       `,
-      {
-        ...conditions.reduce(
-          (conditions, condition) => {
-            conditions[condition!.field] = condition!.value;
-            return conditions;
-          },
-          {} as Record<string, unknown>,
-        ),
-        limit,
-        offset,
-      },
-    );
+        {
+          ...conditions.reduce(
+            (conditions, condition) => {
+              conditions[condition!.field] = condition!.value;
+              return conditions;
+            },
+            {} as Record<string, unknown>,
+          ),
+          limit,
+          offset,
+        },
+      );
 
-    client.release();
-    const results = await this.pool.query<AccessRow>(query, values);
-    return results.rows.map(getAccessRecordFromRow);
+      const results = await this.pool.query<AccessRow>(query, values);
+      return results.rows.map(getAccessRecordFromRow);
+    } finally {
+      client.release();
+    }
+  }
+
+  async queryDistinctAccessObjects(
+    parameters: QueryParameters,
+  ): Promise<Omit<AccessRecord, "id">[]> {
+    const {
+      accessorIds: accessor_id,
+      objectTypes: object_type,
+      objectIds: object_id,
+      operations: operation,
+      sortMethod = "timestamp asc",
+      offset = 0,
+      limit = 50,
+    } = parameters;
+    const client = await this.pool.connect();
+
+    try {
+      const conditions = [
+        getNamedCondition(client, "accessor_id", accessor_id),
+        getNamedCondition(client, "object_type", object_type),
+        getNamedCondition(client, "object_id", object_id),
+        getNamedCondition(client, "operation", operation),
+      ].filter(Boolean);
+      const { query, values } = this.convertNamedParameters(
+        `
+        SELECT accessor_id, object_type, object_id, operation, MAX("timestamp") as "timestamp"
+        FROM ${this.schema}.${AccessRepo.accessTrackingTableName}
+        WHERE ${conditions.map((condition) => condition!.sql).join(`\nAND `)}
+        GROUP BY accessor_id, object_type, object_id, operation
+        ORDER BY "timestamp" ${sortMethod === "timestamp asc" ? "ASC" : "DESC"}
+        LIMIT :limit
+        OFFSET :offset;
+      `,
+        {
+          ...conditions.reduce(
+            (conditions, condition) => {
+              conditions[condition!.field] = condition!.value;
+              return conditions;
+            },
+            {} as Record<string, unknown>,
+          ),
+          limit,
+          offset,
+        },
+      );
+
+      const results = await this.pool.query<AccessRow>(query, values);
+      return results.rows.map(getAccessRecordFromRow);
+    } finally {
+      client.release();
+    }
   }
 }
+
+type QueryParameters = {
+  accessorIds?: string | string[];
+  objectTypes?: string | string[];
+  objectIds?: string | string[];
+  operations?: string | string[];
+  sortMethod?: "timestamp asc" | "timestamp desc";
+  limit?: number;
+  offset?: number;
+};
+type ConditionValue = undefined | string | string[];
+type Condition = {
+  field: string;
+  sql: string;
+  value: ConditionValue;
+};
+
+const getNamedCondition = (
+  client: PoolClient,
+  field: string,
+  values: ConditionValue,
+): Condition | undefined => {
+  if (!values || (Array.isArray(values) && !values.length)) {
+    return undefined;
+  }
+
+  const arrayValues = Array.isArray(values) ? values : [values];
+  const sql = `${client.escapeIdentifier(field)} = ${
+    arrayValues.length > 1 ? `ANY(:${field})` : `:${field}`
+  }`;
+  return {
+    field,
+    sql,
+    value: arrayValues.length > 1 ? arrayValues : arrayValues[0],
+  };
+};
 
 type AccessRow = {
   /** PK */
